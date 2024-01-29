@@ -1,77 +1,73 @@
-本文章是使用 Go 來寫一個 Repository Restful API 的留言板，並且會使用 gin 以及 gorm (使用 Mysql)套件。
 
-建議可以先觀看 [Go 介紹](https://pin-yi.me/go/) 文章來簡單學習 Go 語言。
+# 前言
+這篇是我看到這篇文章
+https://github.com/880831ian/go-restful-api-repository-messageboard?tab=readme-ov-file
+跟著實作練習的紀錄，是使用 Go 來寫一個 Repository Restful API 的留言板，並且會使用 gin 以及 gorm (使用 Mysql)套件。
+另外有加入 docker-compose設定跟mysql 連線調整。
 
-版本資訊
+# 開發環境
+## Go
+![image](https://hackmd.io/_uploads/Hy_t7sx5a.png)
+>https://go.dev/
 
-* macOS：11.6
-* Go：go version go1.18 darwin/amd64
-* Mysql：mysql  Ver 8.0.28 for macos11.6 on x86_64 (Homebrew)
-<br>
+## GIN框架
+![image](https://hackmd.io/_uploads/B1ZiXjl5p.png)
+>https://gin-gonic.com/
 
-## 實作
+## Mysql 
+![image](https://hackmd.io/_uploads/Sks3mogcT.png)
+![image](https://hackmd.io/_uploads/SJXmVogc6.png)
 
-### 檔案結構
+## Docker
+![image](https://hackmd.io/_uploads/SyXkVjl56.png)
 
+# 檔案結構
 ```
 .
 ├── controller
-│   └── controller.go
+│   └── controller.go
 ├── go.mod
 ├── go.sum
 ├── main.go
 ├── model
-│   └── model.go
+│   └── model.go
 ├── repository
-│   └── repository.go
+│   └── repository.go
 ├── router
-│   └── router.go
+│   └── router.go
 └── sql
     ├── connect.yaml
     └── sql.go
 ```
 
-<br>
+資料夾個別功能與作用:
+sql：放置連線資料庫檔案。
+controller：商用邏輯控制。
+model：定義資料表資料型態。
+repository：處理與資料庫進行交握。
+router：設定網站網址路由。
 
-我們來說明一下上面的資料夾個別功能與作用
-
-* sql：放置連線資料庫檔案。
-* controller：商用邏輯控制。
-* model：定義資料表資料型態。
-* repository：處理與資料庫進行交握。
-* router：設定網站網址路由。
-
-### go.mod
-
-一開始我們創好資料夾後，要先來設定 go.mod 的 module
-
-```sh
-$ go mod init message
+## 設定 go.mod
+到開發資料夾底下
+```
+cd message_board
+```
+初始化設定 go.mod 的 module
+```
+go mod init message
 ```
 
-* go.mod 檔案
-```sh
-module message
+接著使用 go get 來引入 gin、gorm、mysql、yaml 套件
 
-go 1.18
 ```
-
-<br>
-
-接著使用 `go get` 來引入 `gin`、`gorm`、`mysql`、`yaml` 套件
-```sh
 $ go get -u github.com/gin-gonic/gin
 $ go get -u gorm.io/gorm
 $ go get -u gorm.io/driver/mysql
 $ go get -u gopkg.in/yaml.v2
 ```
-可以在查看一下 go.mod 檔案是否多了很多 indirect
 
-<br>
-
-### main.go
-
-```go
+## main.go
+```
 package main
 
 import (
@@ -94,34 +90,27 @@ func main() {
 	//註冊路由
 	r := router.SetRouter()
 	
-	//啟動埠為8081的專案
-	fmt.Println("開啟127.0.0.0.1:8081...")
-	r.Run("127.0.0.1:8081")
+	//啟動埠為8082的專案
+	fmt.Println("開啟127.0.0.0.1:8082...")
+	r.Run("127.0.0.1:8082")
 }
 ```
-引入我們 Repository 架構，將 config、model、router 導入，先測試是否可以連線資料庫，使用 `AutoMigrate` 來新增資料表(如果沒有才新增)，或是使用 Table 來連線已有資料表，註冊網址路由，最後啟動專案，我們將 Port 設定成 8081。
 
-<br>
+引入我們 Repository 架構，將 config、model、router 導入，先測試是否可以連線資料庫，使用 AutoMigrate 來新增資料表(如果沒有才新增)，或是使用 Table 來連線已有資料表，註冊網址路由，最後啟動專案，我們將 Port 設定成 8082。
 
-### sql
-
-我們剛剛有引入 `yaml` 套件，因為我們設定檔案會使用 yaml 來編輯
-
-* connect.yaml
-```yaml
+## sql 設定
+connect.yaml
+```
 host: 127.0.0.1
 username: root
 password: "密碼"
 dbname: "資料庫名稱"
 port: 3306
 ```
-我們把 mysql 連線的資訊寫在此處。
+我們把 mysql 連線的資訊寫在此處。  (專案正式環境可能要加入gitignore 比較安全)
 
-<br>
-
-* sql.go (下面為一個檔案，但長度有點長，分開說明)
-
-```go
+sql.go (下面為一個檔案，但長度有點長，分開說明)
+```
 package sql
 
 import (
@@ -131,12 +120,11 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/driver/mysql"
 )
+
 ```
+
 import 會使用到的套件。
-
-<br>
-
-```go
+```
 var Connect *gorm.DB
 
 type conf struct {
@@ -166,9 +154,7 @@ func (c *conf) getConf() *conf {
 ```
 設定資料庫連線的 conf 來讀取 yaml 檔案。
 
-<br>
-
-```go
+```
 //初始化連線資料庫
 func InitMySql() (err error) {
 	var c conf
@@ -190,13 +176,12 @@ func InitMySql() (err error) {
 	return
 }
 ```
-初始化資料庫，會把剛剛讀取 yaml 的 conf  串接成可以連接資料庫的 url ，最後連線資料庫。 
+ 
+初始化資料庫，會把剛剛讀取 yaml 的 conf 串接成可以連接資料庫的 url ，最後連線資料庫。
 
-<br>
-
-### router.go
-
-```go
+## 路由設定
+router.go
+```
 package router
 
 import (
@@ -225,13 +210,11 @@ func SetRouter() *gin.Engine {
 	return r
 }
 ```
-設定路由，版本 v1 網址是 `api/v1` ，分別是新增留言、查詢全部留言、查詢 {id} 留言、修改 {id} 留言、刪除 {id} 留言，連接到不同的 `controller` function 。
+設定路由，版本 v1 網址是 api/v1 ，分別是新增留言、查詢全部留言、查詢 {id} 留言、修改 {id} 留言、刪除 {id} 留言，連接到不同的 controller function 。
 
-<br>
-
-### model.go
-
-```go
+## 資料表設定
+model.go
+```
 package model
 
 import 	"gorm.io/gorm"
@@ -251,13 +234,11 @@ type Message struct {
 ```
 設定資料表的結構，使用 gorm.Model 預設裡面會包含 CreatedAt 和 UpdatedAt 和 DeletedAt 欄位。
 
-<br>
+## controller 設定
+controller.go
+(下面為一個檔案，但長度有點長，分開說明)
 
-### controller.go 
-
-**(下面為一個檔案，但長度有點長，分開說明)**
-
-```go
+```
 package controller
 
 import (
@@ -271,11 +252,8 @@ import (
 ```
 import 會使用到的套件。
 
-<br>
-
-**查詢留言功能**
-
-```go
+查詢留言功能
+```
 func GetAll(c *gin.Context) {
 	message, err := repository.GetAllMessage()
 
@@ -296,16 +274,13 @@ func Get(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 ```
-`GetAll()` 會使用到 `repository.GetAllMessage()` 查詢並回傳顯示查詢的資料。
 
-`c.Param("id")` 是網址讀入後的 id，網址是`http://127.0.0.1:8081/api/v1/message/{id}` ，將輸入的 id 透過 `repository.GetMessage()` 查詢並回傳顯示查詢的資料。
+GetAll() 會使用到 repository.GetAllMessage() 查詢並回傳顯示查詢的資料。
 
+c.Param("id") 是網址讀入後的 id，網址是http://127.0.0.1:8081/api/v1/message/{id} ，將輸入的 id 透過 repository.GetMessage() 查詢並回傳顯示查詢的資料。
 
-<br>
-
-**新增留言功能**
-
-```go
+新增留言功能
+```
 func Create(c *gin.Context) {
 	var message model.Message
 
@@ -319,14 +294,10 @@ func Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": message})
 }
 ```
+使用 Gin 框架中的 Bind 函數，可以將 url 的查詢參數 query parameter，http 的 Header、body 中提交的數據給取出，透過 repository.CreateMessage() 將要新增的資料帶入，如果失敗就顯示 http.StatusBadRequest，如果成功就顯示 http.StatusCreated 以及新增的資料。
 
-使用 Gin 框架中的 `Bind 函數`，可以將 url 的查詢參數 query parameter，http 的 Header、body 中提交的數據給取出，透過 `repository.CreateMessage()` 將要新增的資料帶入，如果失敗就顯示 `http.StatusBadRequest`，如果成功就顯示 `http.StatusCreated` 以及新增的資料。
-
-<br>
-
-**修改留言功能**
-
-```go
+修改留言功能
+```
 func Update(c *gin.Context) {
 	var message model.Message
 
@@ -342,14 +313,10 @@ func Update(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 ```
+先使用 repository.GetMessage() 以及 c.Param("id") 來查詢此 id 是否存在，再帶入要修改的 Content ，透過 repository.UpdateMessage() 將資料修改，，如果失敗就顯示 http.StatusNotFound 以及找不到留言，如果成功就顯示 http.StatusOK 以及修改的資料。
 
-先使用 `repository.GetMessage()` 以及 `c.Param("id")` 來查詢此 id 是否存在，再帶入要修改的 `Content` ，透過 `repository.UpdateMessage()` 將資料修改，，如果失敗就顯示 `http.StatusNotFound` 以及找不到留言，如果成功就顯示 `http.StatusOK` 以及修改的資料。
-
-<br>
-
-**刪除留言功能**
-
-```go
+刪除留言功能
+```
 func Delete(c *gin.Context) {
 	var message model.Message
 
@@ -360,18 +327,14 @@ func Delete(c *gin.Context) {
 	c.JSON(http.StatusNoContent, gin.H{"message": "刪除留言成功"})
 }
 ```
+透過 repository.DeleteMessage() 將資料刪除，如果失敗就顯示 http.StatusNotFound  以及找不到留言，如果成功就顯示 http.StatusNoContent。
 
-透過 `repository.DeleteMessage()` 將資料刪除，如果失敗就顯示 `http.StatusNotFound ` 以及找不到留言，如果成功就顯示 `http.StatusNoContent`。
 
-<br>
-
-### repository.go
-
-**(下面為一個檔案，但長度有點長，分開說明)**
+## repository.go
+(下面為一個檔案，但長度有點長，分開說明)
 
 所有的邏輯判斷都要在 controller 處理，所以 repository.go 就單純對資料庫就 CRUD：
-
-```go
+```
 package repository
 
 import (
@@ -381,11 +344,8 @@ import (
 ```
 import 會使用到的套件。
 
-<br>
-
-**查詢留言資料讀取**
-
-```go
+查詢留言資料讀取
+```
 //查詢全部留言
 func GetAllMessage() (message []*model.Message, err error) {
 	err = sql.Connect.Find(&message).Error
@@ -399,23 +359,18 @@ func GetMessage(message *model.Message, id string) (err error) {
 }
 ```
 
-<br>
+新增留言資料讀取
 
-**新增留言資料讀取**
-
-```go
+```
 //新增留言
 func CreateMessage(message *model.Message) (err error) {
 	err = sql.Connect.Create(&message).Error
 	return
 }
 ```
+修改留言資料讀取
 
-<br>
-
-**修改留言資料讀取**
-
-```go
+```
 //更新 {id} 留言
 func UpdateMessage(message *model.Message, content, id string) (err error) {
 	err = sql.Connect.Where("id=?", id).First(&message).Update("content", content).Error
@@ -423,11 +378,8 @@ func UpdateMessage(message *model.Message, content, id string) (err error) {
 }
 ```
 
-<br>
-
-**刪除留言資料讀取**
-
-```go
+刪除留言資料讀取
+```
 //刪除 {id} 留言
 func DeleteMessage(message *model.Message, id string) (err error) {
 	err = sql.Connect.Where("id=?", id).First(&message).Delete(&message).Error
@@ -435,65 +387,366 @@ func DeleteMessage(message *model.Message, id string) (err error) {
 }
 ```
 
-<br>
+# Mysql docker-compose 設定
+因為我在實作時發現沒有做 mysql server的設定，我這邊作了以下調整
 
-## Postman 測試
+## Dockerfile
+```
+# 使用 Go 官方映像作為基礎映像
+FROM golang:latest
 
-### 查詢全部留言 - 成功(無資料)
+# 設定工作目錄
+WORKDIR /app
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/get-success-1.png)
+# 複製 go.mod 和 go.sum 文件
+COPY go.mod go.sum ./
 
-<br>
+# 下載依賴
+RUN go mod download
 
-### 查詢全部留言 - 成功(有資料)
+# 複製源代碼文件到工作目錄
+COPY . .
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/get-success-2.png)
+# 構建應用程序
+RUN go build -o main .
 
-<br>
+# 暴露端口
+EXPOSE 8082
 
-### 查詢{id}留言 - 成功
+# 執行應用程序
+CMD ["./main"]
+```
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/get-id-succes.png)
+## docker-compose.yml
+```
+version: "2.1"
 
-<br>
+services:
+    db:
+        image: mysql:5.7
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: go
+        ports:
+            - "3306:3306"
+        restart: always
 
-### 查詢{id}留言 - 失敗
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        environment:
+            PMA_HOST: db
+            PMA_PORT: 3306
+        ports:
+            - "8084:80"
+        depends_on:
+            - db
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/get-error.png)
+    go-app:
+        build: .
+        ports:
+            - "8082:8082"
+        depends_on:
+            - db
+```
 
-<br>
+這邊設定了 phpmyadmin跟 mysql 服務，另外有一個go-app 的服務運行這個專案
 
-### 新增留言 - 成功
+## 啟用docker-compose
+```
+docker-compose up -d
+```
+![image](https://hackmd.io/_uploads/HkpcFix56.png)
+>運行結果
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/create.png)
+![image](https://hackmd.io/_uploads/ByzLhixca.png)
+>phpmyadmin連線
 
-<br>
+# Postman 測試
 
-### 修改{id}留言 - 成功
+## 查詢全部留言 - 成功(無資料)
+![image](https://hackmd.io/_uploads/Hy_Ja5x96.png)
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/patch-success.png)
+## 查詢全部留言 - 成功(有資料)
+![image](https://hackmd.io/_uploads/HkqgWig5T.png)
 
-<br>
+## 查詢{id}留言 - 成功
+![image](https://hackmd.io/_uploads/rkPUWig56.png)
 
-### 修改{id}留言 - 失敗
+## 查詢{id}留言 - 失敗
+![image](https://hackmd.io/_uploads/rJeKWilqp.png)
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/patch-error.png)
+## 新增留言 - 成功
+![image](https://hackmd.io/_uploads/By2w1jxqT.png)
 
-<br>
+## 修改{id}留言 - 成功
+![image](https://hackmd.io/_uploads/SyYGejec6.png)
 
-### 刪除{id}留言 - 成功
+## 刪除{id}留言 - 成功
+![image](https://hackmd.io/_uploads/ByDofsxcp.png)
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/delete.png)
+## 執行結果
+![image](https://hackmd.io/_uploads/SJv2GoxcT.png)
 
-<br>
+## 練習結果Repo
+https://github.com/gahgah147/go-restful-api-repository-messageboard
 
-### 執行結果
+## 測試postmain 內容 export
+```
+{
+	"info": {
+		"_postman_id": "957a0737-049b-4605-b718-07ca8e13d683",
+		"name": "GO Repository Restful API  留言板",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "4951341",
+		"_collection_link": "https://martian-escape-400870.postman.co/workspace/GO-Repository-Restful-API-%25E7%259A%2584%25E7%2595%2599%25E8%25A8%2580%25E6%259D%25BF~4f66f5ef-49b8-47c3-918f-cf7a14414aa4/collection/4951341-957a0737-049b-4605-b718-07ca8e13d683?action=share&source=collection_link&creator=4951341"
+	},
+	"item": [
+		{
+			"name": "查詢全部留言",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8082/api/v1/message/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8082",
+					"path": [
+						"api",
+						"v1",
+						"message",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "查詢留言",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8082/api/v1/message/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8082",
+					"path": [
+						"api",
+						"v1",
+						"message",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增留言",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\":{\r\n        \"id\":1,\r\n        \"User_Id\": 2,\r\n        \"Content\": \"早安\",\r\n        \"Version\": 0,\r\n        \"ID\": 0,\r\n        \"CreatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"UpdatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"DeletedAt\": null\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8082/api/v1/message",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8082",
+					"path": [
+						"api",
+						"v1",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "修改留言",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\":{\r\n        \"id\":1,\r\n        \"User_Id\": 2,\r\n        \"Content\": \"早安\",\r\n        \"Version\": 0,\r\n        \"ID\": 0,\r\n        \"CreatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"UpdatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"DeletedAt\": null\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8082/api/v1/message",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8082",
+					"path": [
+						"api",
+						"v1",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "刪除留言",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"message\":{\r\n        \"id\":1,\r\n        \"User_Id\": 2,\r\n        \"Content\": \"早安\",\r\n        \"Version\": 0,\r\n        \"ID\": 0,\r\n        \"CreatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"UpdatedAt\": \"2022-03-29T17:39:33.014+08:00\",\r\n        \"DeletedAt\": null\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8082/api/v1/message/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8082",
+					"path": [
+						"api",
+						"v1",
+						"message",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
+```
 
-![圖片](https://raw.githubusercontent.com/880831ian/go-restful-api-repository-messageboard/master/images/gin-cli.png)
+# 加入Container 內容持久化設定
+```
+volumes:
+            - ./db_data:/var/lib/mysql
+```
+在 yaml 中新增 Volumes，Volumes 會將資料存放於 Container 之外，範例中就是會把資料存放於 db_data 這個資料夾
 
-<br>
+```
+db:
+        image: mysql:5.7
+        container_name: db
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: go
+        volumes:
+            - ./db_data:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        restart: always
+        networks:
+          - default
+```
 
-## 參考資料
+# 設定container之間的連線
 
-[基於Gin+Gorm框架搭建MVC模式的Go語言後端系統](https://iter01.com/609571.html)
-# go-restful-api-repository-messageboard
+加入network設定
+```
+networks:
+  default:
+```
+
+並調整 docker-compose 檔案
+```
+version: "2.1"
+
+services:
+    db:
+        image: mysql:5.7
+        container_name: db
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: go
+        volumes:
+            - ./db_data:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        restart: always
+        networks:
+          - default
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        environment:
+            PMA_HOST: db
+            PMA_PORT: 3306
+        ports:
+            - "8084:80"
+        depends_on:
+            - db
+        networks:
+          - default
+    go-app:
+        build: .
+        container_name: go-app
+        ports:
+            - "8082:8082"
+        depends_on:
+            - db
+        networks:
+          - default
+
+networks:
+  default:
+```
+
+調整 connect.yaml
+```
+host: db
+username: root
+password: root
+dbname: go
+port: 3306
+```
+
+這邊設定 db連線到db這個 container
+
+# 專案練習 Repo
+https://github.com/gahgah147/go-restful-api-repository-messageboard
+
+# 參考資料
+https://github.com/880831ian/go-restful-api-repository-messageboard?tab=readme-ov-file
+
